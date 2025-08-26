@@ -1,0 +1,138 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyO2MIUuBd901NC3lcZ7lm9t",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/RianzDev/sd/blob/main/Testes\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 1,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "yTYJETBcrx_j",
+        "outputId": "915a4e86-a84f-4420-95c2-b17259e635b1"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Collecting ntplib\n",
+            "  Downloading ntplib-0.4.0-py2.py3-none-any.whl.metadata (1.6 kB)\n",
+            "Downloading ntplib-0.4.0-py2.py3-none-any.whl (6.8 kB)\n",
+            "Installing collected packages: ntplib\n",
+            "Successfully installed ntplib-0.4.0\n",
+            "A consultar o servidor NTP: 0.pool.ntp.org...\n",
+            "\n",
+            "Ocorreu um erro inesperado: [Errno -8] Servname not supported for ai_socktype\n",
+            "\n",
+            "--- Demonstração Conceitual ---\n",
+            "Imaginemos dois eventos num sistema distribuído sem sincronização perfeita:\n",
+            "Evento A registado localmente às: 23:22:03.019\n",
+            "Evento B registado localmente às: 23:22:03.519\n",
+            "\n",
+            "Em um sistema distribuído, se as máquinas envolvidas em 'Evento A' e 'Evento B' não estivessem sincronizadas,\n",
+            "a ordem real desses eventos poderia ser mal interpretada, levando a problemas no sistema [6].\n"
+          ]
+        }
+      ],
+      "source": [
+        "# 1. Instalar a biblioteca ntplib (se ainda não estiver instalada no ambiente Colab)\n",
+        "#    Esta linha só precisa ser executada uma vez.\n",
+        "!pip install ntplib\n",
+        "\n",
+        "# 2. Importar as bibliotecas necessárias\n",
+        "import ntplib\n",
+        "from datetime import datetime\n",
+        "import time\n",
+        "\n",
+        "# 3. Definir o servidor NTP a ser consultado\n",
+        "#    0.pool.ntp.org é um pool de servidores NTP público e amplamente utilizado.\n",
+        "#    A fonte menciona '0.pool.ntp.org' em comandos de configuração para Windows [5].\n",
+        "ntp_server = '0.pool.ntp.org'\n",
+        "\n",
+        "# 4. Criar um cliente NTP\n",
+        "client = ntplib.NTPClient()\n",
+        "\n",
+        "print(f\"A consultar o servidor NTP: {ntp_server}...\\n\")\n",
+        "\n",
+        "try:\n",
+        "    # 5. Enviar uma requisição NTP ao servidor\n",
+        "    #    O método request() retorna um objeto que contém a resposta do servidor.\n",
+        "    #    O timeout é definido para evitar que o script fique à espera indefinidamente.\n",
+        "    response = client.request(ntp_server, version=3, timeout=5)\n",
+        "\n",
+        "    # 6. Extrair informações da resposta\n",
+        "    #    - tx_time: A hora em que a resposta foi enviada pelo servidor NTP.\n",
+        "    #    - offset: A diferença de tempo entre o relógio local e o relógio do servidor NTP.\n",
+        "    #              Um offset positivo significa que o relógio local está adiantado.\n",
+        "    #              Um offset negativo significa que o relógio local está atrasado.\n",
+        "    server_time_unix = response.tx_time\n",
+        "    offset_seconds = response.offset\n",
+        "\n",
+        "    # Converter a hora Unix para um formato legível\n",
+        "    server_time_dt = datetime.fromtimestamp(server_time_unix)\n",
+        "    local_time_dt = datetime.now() # Hora local da máquina virtual do Colab\n",
+        "\n",
+        "    # Imprimir os resultados\n",
+        "    print(f\"Hora atual do servidor NTP ({ntp_server}): {server_time_dt.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]} UTC\")\n",
+        "    print(f\"Hora atual da máquina local (Colab VM):   {local_time_dt.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]} (Assumindo fuso horário da VM)\")\n",
+        "    print(f\"Diferença de tempo (offset) em segundos:   {offset_seconds:.6f} segundos\")\n",
+        "\n",
+        "    # Interpretar o offset\n",
+        "    if abs(offset_seconds) > 0.1: # Considerar um limiar para mostrar que está 'diferente'\n",
+        "        print(\"\\nO relógio local está significativamente desalinhado com o servidor NTP.\")\n",
+        "        print(\"Em um sistema distribuído real, esta diferença seria corrigida pelo NTP.\")\n",
+        "        print(\"Esta correção é essencial para o funcionamento correto dos softwares [3].\")\n",
+        "    else:\n",
+        "        print(\"\\nO relógio local está bem sincronizado com o servidor NTP (pequeno desvio esperado devido à latência de rede).\")\n",
+        "        print(\"Isso demonstra a eficácia da sincronização horária para sistemas distribuídos [4].\")\n",
+        "\n",
+        "except ntplib.NTPException as e:\n",
+        "    print(f\"Erro ao consultar o servidor NTP: {e}\")\n",
+        "    print(\"Verifique a sua ligação à internet ou tente um servidor NTP diferente.\")\n",
+        "except Exception as e:\n",
+        "    print(f\"Ocorreu um erro inesperado: {e}\")\n",
+        "\n",
+        "# Exemplo de como um atraso local poderia afetar a \"perceção\" de eventos\n",
+        "print(\"\\n--- Demonstração Conceitual ---\")\n",
+        "print(\"Imaginemos dois eventos num sistema distribuído sem sincronização perfeita:\")\n",
+        "evento_A_hora_local = datetime.now()\n",
+        "time.sleep(0.5) # Simula algum processamento ou atraso\n",
+        "evento_B_hora_local = datetime.now()\n",
+        "\n",
+        "print(f\"Evento A registado localmente às: {evento_A_hora_local.strftime('%H:%M:%S.%f')[:-3]}\")\n",
+        "print(f\"Evento B registado localmente às: {evento_B_hora_local.strftime('%H:%M:%S.%f')[:-3]}\")\n",
+        "\n",
+        "# Se o relógio de uma máquina estivesse adiantado ou atrasado, a ordem dos eventos poderia ser mal interpretada.\n",
+        "# A fonte menciona que sem sincronização podem ocorrer falhas na ordenação de eventos [6].\n",
+        "print(\"\\nEm um sistema distribuído, se as máquinas envolvidas em 'Evento A' e 'Evento B' não estivessem sincronizadas,\")\n",
+        "print(\"a ordem real desses eventos poderia ser mal interpretada, levando a problemas no sistema [6].\")"
+      ]
+    }
+  ]
+}
